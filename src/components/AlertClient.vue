@@ -1,18 +1,45 @@
 <template>
-  <div id="fmi-warnings" :class="currentTheme" :data-smartmet-alert-client-version="version">
+  <div
+    id="fmi-warnings"
+    :class="currentTheme"
+    :data-smartmet-alert-client-version="version">
     <div id="fmi-warnings-errors" :class="errors" />
     <div>
       <div class="container-fluid" :class="currentTheme">
         <div class="row">
           <div class="col-12 col-md-8 col-lg-8 col-xl-8 day-region-views">
-            <h3>{{ validWarningsText }}</h3>
+            <h3 class="valid-warnings" :class="initialized && 'initialized'">
+              {{ validWarningsText }}
+              <span v-if="!initialized">
+                <br>
+                {{ additionalWarningsText }}
+                <br>
+                <a
+                  :href="supportedBrowsersLink"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="supported-browsers">
+                  {{ supportedBrowsers }}</a
+                >
+              </span>
+            </h3>
             <div v-if="regionListEnabled">
-              <a v-if="numWarnings" href="#fmi-warnings-region-content" id="fmi-warnings-to-text-content" tabindex="0" class="sr-only sr-only-focusable">{{
-                toContentText
-              }}</a>
+              <a
+                v-if="numWarnings"
+                id="fmi-warnings-to-text-content"
+                href="#fmi-warnings-region-content"
+                tabindex="0"
+                class="sr-only sr-only-focusable"
+                >{{ toContentText }}</a
+              >
               <div v-else :aria-label="noWarningsText"></div>
             </div>
-            <Days :input="days" :defaultDay="selectedDay" :staticDays="staticDays" :regions="regions" :geometryId="geometryId" />
+            <Days
+              :input="days"
+              :default-day="selectedDay"
+              :static-days="staticDays"
+              :regions="regions"
+              :geometry-id="geometryId" />
           </div>
           <div class="col-12 col-md-4 col-lg-4 col-xl-4 symbol-list">
             <Legend v-show="validData" :input="legend" />
@@ -20,10 +47,12 @@
         </div>
         <div v-if="regionListEnabled" class="row">
           <div class="col-12 col-md-8 col-lg-8 col-xl-8 day-region-views">
-            <Regions :input="regions" :parents="parents" :geometryId="geometryId" />
+            <Regions
+              :input="regions"
+              :parents="parents"
+              :geometry-id="geometryId" />
           </div>
-          <div class="col-12 col-md-4 col-lg-4 col-xl-4 symbol-list ">
-          </div>
+          <div class="col-12 col-md-4 col-lg-4 col-xl-4 symbol-list"></div>
         </div>
       </div>
     </div>
@@ -31,14 +60,15 @@
 </template>
 
 <script>
-import i18n from '../i18n';
-import Days from './Days.vue';
-import Regions from './Regions.vue';
-import Legend from './Legend.vue';
-import module from '../store/module';
-import config from '../mixins/config';
-import utils from '../mixins/utils';
-import 'focus-visible';
+import 'focus-visible'
+
+import i18n from '../i18n'
+import config from '../mixins/config'
+import utils from '../mixins/utils'
+import module from '../store/module'
+import Days from './Days.vue'
+import Legend from './Legend.vue'
+import Regions from './Regions.vue'
 
 export default {
   name: 'AlertClient',
@@ -55,6 +85,10 @@ export default {
       type: Boolean,
       default: true,
     },
+    startFrom: {
+      type: String,
+      default: '',
+    },
     regionListEnabled: {
       type: Boolean,
       default: true,
@@ -64,6 +98,10 @@ export default {
       default: Date.now(),
     },
     warningsData: Object,
+    dailyWarningTypes: {
+      type: Array,
+      default: () => [],
+    },
     geometryId: {
       type: Number,
       default: config.props.defaultGeometryId,
@@ -78,12 +116,12 @@ export default {
       default: true,
     },
   },
-  mixins: [config, utils],
   components: {
     Days,
     Regions,
     Legend,
   },
+  mixins: [config, utils],
   data() {
     return {
       timer: null,
@@ -96,127 +134,155 @@ export default {
       // eslint-disable-next-line no-undef
       version: VERSION,
       errors: [],
-    };
+    }
   },
   computed: {
     loading() {
-      return this.$store.getters.loading;
+      return this.$store.getters.loading
     },
     toContentText() {
-      return i18n.t('toContent') || '';
+      return i18n.t('toContent') || ''
     },
     noWarningsText() {
-      return i18n.t('noWarnings');
+      return i18n.t('noWarnings')
     },
     validWarningsText() {
       if (this.loading) {
-        return '';
+        return ''
       }
-      return this.legend.length > 0 ?
-        i18n.t('validWarnings') :
-        i18n.t('noWarnings');
+      if (!this.initialized) {
+        return i18n.t('notInitializedStart')
+      }
+      return this.legend.length > 0
+        ? i18n.t('validWarnings')
+        : i18n.t('noWarnings')
+    },
+    supportedBrowsersLink() {
+      return i18n.t('supportedBrowsersLink')
+    },
+    supportedBrowsers() {
+      return i18n.t('supportedBrowsers')
+    },
+    additionalWarningsText() {
+      return i18n.t('notInitializedEnd')
     },
     numWarnings() {
-      return Object.keys(this.warnings).length;
+      return Object.keys(this.warnings).length
     },
     validData() {
-      return ((this.days != null) && (this.days.length === 5) && (this.days[0].updatedDate != null) &&
-        (this.days[0].updatedDate.length > 0));
+      return (
+        this.days != null &&
+        this.days.length === 5 &&
+        this.days[0].updatedDate != null &&
+        this.days[0].updatedDate.length > 0
+      )
     },
   },
   watch: {
     warningsData() {
-      this.createDataForChildren();
+      this.createDataForChildren()
     },
   },
   async beforeCreate() {
     if (!this.$store.hasModule('warningsStore')) {
       await this.$store.registerModule('warningsStore', module, {
         preserveState: false,
-      });
+      })
     }
   },
   created() {
     if (this.language) {
-      i18n.locale = this.language;
+      i18n.locale = this.language
     }
-    this.createDataForChildren();
+    this.createDataForChildren()
     if (this.warningsData == null) {
-      this.update();
+      this.update()
     }
   },
   mounted() {
-    this.$store.dispatch('setTheme', this.theme);
-    this.initTimer();
+    this.$store.dispatch('setTheme', this.theme)
+    this.initTimer()
     if (this.sleep) {
-      this.visibilityListener = document.addEventListener('visibilitychange', this.visibilityChange);
+      this.visibilityListener = document.addEventListener(
+        'visibilitychange',
+        this.visibilityChange
+      )
     }
   },
   beforeDestroy() {
     if (this.isClientSide()) {
-      document.removeEventListener('visibilitychange', this.visibilityListener);
+      document.removeEventListener('visibilitychange', this.visibilityListener)
     }
-    this.cancelTimer();
-    this.$store.unregisterModule('warningsStore');
+    this.cancelTimer()
+    this.$store.unregisterModule('warningsStore')
   },
   async serverPrefetch() {
-    await this.createDataForChildren();
+    await this.createDataForChildren()
   },
   methods: {
     async createDataForChildren() {
       if (this.warningsData != null) {
-        const result = await this.handleMapWarnings(this.warningsData);
-        this.warnings = result.warnings;
-        this.days = result.days;
-        this.regions = result.regions;
-        this.parents = result.parents;
-        this.legend = result.legend;
+        const result = await this.handleMapWarnings(this.warningsData)
+        this.warnings = result.warnings
+        this.days = result.days
+        this.regions = result.regions
+        this.parents = result.parents
+        this.legend = result.legend
         const dispatches = [
-          this.$store.dispatch('setVisibleWarnings', this.legend.filter((legendWarning) => legendWarning.visible).map((legendWarning) => legendWarning.type)),
+          this.$store.dispatch(
+            'setVisibleWarnings',
+            this.legend
+              .filter((legendWarning) => legendWarning.visible)
+              .map((legendWarning) => legendWarning.type)
+          ),
           this.$store.dispatch('setWarnings', this.warnings),
-        ];
+        ]
         if (!this.initialized) {
-          dispatches.unshift(this.$store.dispatch('setSelectedDay', this.selectedDay));
+          dispatches.unshift(
+            this.$store.dispatch('setSelectedDay', this.selectedDay)
+          )
         }
-        await Promise.all(dispatches);
+        await Promise.all(dispatches)
       }
     },
     visibilityChange() {
-      if ((this.isClientSide()) && (this.refreshInterval)) {
+      if (this.isClientSide() && this.refreshInterval) {
         if (document.hidden) {
-          this.cancelTimer();
+          this.cancelTimer()
         } else {
-          this.cancelTimer();
-          this.update();
-          this.initTimer();
+          this.cancelTimer()
+          this.update()
+          this.initTimer()
         }
       }
     },
     initTimer() {
       if (this.refreshInterval) {
-        this.timer = setInterval(this.update, this.refreshInterval);
+        this.timer = setInterval(this.update, this.refreshInterval)
       }
     },
     cancelTimer() {
       if (this.timer != null) {
-        clearInterval(this.timer);
+        clearInterval(this.timer)
       }
     },
     update() {
-      this.$emit('update-warnings');
+      if (this.refreshInterval > 0) {
+        this.$emit('update-warnings')
+      }
     },
     handleError(error) {
       if (!this.errors.includes(error)) {
-        this.errors.push(error);
+        this.errors.push(error)
       }
-      console.log(error);
+      console.log(error)
     },
   },
-};
+}
 </script>
 
 <style scoped lang="scss">
-@import "../scss/constants.scss";
+@import '../scss/constants.scss';
 
 ::v-deep * {
   box-sizing: border-box;
@@ -235,7 +301,7 @@ export default {
   }
 
   .bold-text {
-    font-weight: bold;
+    font-weight: bold !important;
   }
 
   .noselect {
@@ -265,6 +331,50 @@ div#fmi-warnings {
   padding: 0;
   margin-bottom: 20px;
 
+  h3.valid-warnings {
+    text-align: left;
+    font-weight: normal;
+    &.initialized {
+      font-weight: bold;
+    }
+    &:not(.initialized) {
+      width: 100%;
+      background-color: $notification-color;
+      border: 1px solid $darker-blue;
+      color: $darker-blue;
+      padding: 15px;
+    }
+    span {
+      color: $darker-blue;
+      a {
+        font-weight: bold;
+        text-decoration: none;
+        border-bottom: 1px solid $light-ext-link-color;
+      }
+      a:hover {
+        border-color: $darker-blue;
+      }
+    }
+  }
+
+  .dark h3.valid-warnings {
+    &:not(.initialized) {
+      background-color: $darkest-gray;
+      border: 1px solid $notification-color;
+      color: $white;
+    }
+    span {
+      color: $white;
+      a {
+        color: $white;
+        border-bottom: 1px solid $dark-ext-link-color;
+      }
+      a:hover {
+        border-color: $notification-color;
+      }  
+    }  
+  }
+
   div {
     background-color: transparent;
   }
@@ -281,7 +391,7 @@ div#fmi-warnings {
     &:focus {
       outline-offset: 2px;
       &:not([data-focus-visible-added]) {
-          outline: none !important;
+        outline: none !important;
       }
     }
   }
@@ -330,6 +440,14 @@ div.symbol-list {
   width: $symbol-list-width;
   max-width: $symbol-list-width;
   min-width: $symbol-list-width;
+}
+
+.light a.supported-browsers {
+  color: $light-ext-link-color;
+}
+
+.dark a.supported-browsers {
+  color: $light-ext-link-color;
 }
 
 @media (max-width: 767px) {

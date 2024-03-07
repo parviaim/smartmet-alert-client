@@ -18,18 +18,19 @@
       ><br />
       <span>{{ dataProviderSecond }}</span>
     </div>
-    <MapLarge :index="index" :input="regions" :geometryId="geometryId" />
+    <MapLarge :index="index" :input="regions" :geometry-id="geometryId" />
   </div>
 </template>
 
 <script>
-import spacetime from 'spacetime';
-import i18n from '../i18n';
-import MapLarge from './MapLarge.vue';
+import i18n from '../i18n'
+import utils from '../mixins/utils'
+import MapLarge from './MapLarge.vue'
 
 export default {
   name: 'DayLarge',
   components: { MapLarge },
+  mixins: [utils],
   props: {
     index: {
       type: Number,
@@ -51,48 +52,62 @@ export default {
   },
   computed: {
     warnings() {
-      return i18n.t('warnings') || '';
+      return i18n.t('warnings') || ''
     },
     updated() {
-      return i18n.t('updated') || '';
+      return i18n.t('updated') || ''
     },
     atTime() {
-      return i18n.t('atTime') || '';
+      return i18n.t('atTime') || ''
     },
     warningsDate() {
-      if ((this.input.day == null) || (this.input.month == null) || (this.input.year == null)) {
-        return '';
+      if (
+        this.input.day == null ||
+        this.input.month == null ||
+        this.input.year == null
+      ) {
+        return ''
       }
       if (this.staticDays) {
-        return `${this.input.day}.${this.input.month}.${this.input.year}`;
+        return `${this.input.day}.${this.input.month}.${this.input.year}`
       }
-      const date = spacetime([this.input.year, this.input.month - 1, this.input.day], this.timezone);
-      const nextDate = date.add(1, 'day');
-      const offset = this.$store.getters.timeOffset;
-      const offsetDate = date.add(offset, 'milliseconds');
-      const hours = offsetDate.hour();
-      const minutes = (`0${offsetDate.minute()}`).slice(-2);
-      return `${this.input.day}.${this.input.month}.${this.input.year} ${this.atTime} ${hours}:${minutes} -
-      <br> ${nextDate.date()}.${nextDate.month() + 1}.${nextDate.year()} ${this.atTime} ${hours}:${minutes}`;
+      const date = new Date(
+        this.input.year,
+        this.input.month - 1,
+        this.input.day
+      )
+      const nextDate = new Date(date.getTime())
+      nextDate.setDate(nextDate.getDate() + 1)
+      const offset = this.$store.getters.timeOffset
+      const offsetDate = new Date(date.getTime())
+      offsetDate.setMilliseconds(offset)
+      const hours = this.twoDigits(offsetDate.getHours())
+      const minutes = this.twoDigits(offsetDate.getMinutes())
+      return `${this.input.day}.${this.input.month}.${this.input.year} ${
+        this.atTime
+      } ${hours}:${minutes} –
+      <br> ${nextDate.getDate()}.${
+        nextDate.getMonth() + 1
+      }.${nextDate.getFullYear()} ${this.atTime} ${hours}:${minutes}`
     },
     updatedDate() {
-      return this.input.updatedDate || '';
+      return this.input.updatedDate || ''
     },
     updatedTime() {
-      return this.input.updatedTime || '';
+      return this.input.updatedTime || ''
     },
     dataProviderFirst() {
-      return i18n.t('dataProviderFirst');
+      return i18n.t('dataProviderFirst')
     },
     dataProviderSecond() {
-      return i18n.t('dataProviderSecond');
+      return i18n.t('dataProviderSecond')
     },
   },
-};
+}
 </script>
 
 <style scoped lang="scss">
-@import "../scss/constants.scss";
+@import '../scss/constants.scss';
 
 div,
 span {
@@ -137,10 +152,9 @@ div.data-providers {
   pointer-events: none;
 }
 
-@media screen and (orientation:landscape) {
+@media screen and (orientation: landscape) {
   div.map-container {
     height: $map-large-height;
   }
 }
-
 </style>

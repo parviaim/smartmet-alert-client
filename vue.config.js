@@ -1,17 +1,13 @@
-const webpack = require('webpack');
-const CopyPlugin = require('copy-webpack-plugin');
-const PACKAGE = require('./package.json');
+const webpack = require('webpack')
+const CopyPlugin = require('copy-webpack-plugin')
+const PACKAGE = require('./package.json')
 
-const banner =
-  `${PACKAGE.name
-  } - ${
-    PACKAGE.version
-  } | ${
-    PACKAGE.author
-  } ${
-    new Date().getFullYear()}`;
+const banner = `${PACKAGE.name} - ${PACKAGE.version} | ${
+  PACKAGE.author
+} ${new Date().getFullYear()}`
 
 module.exports = {
+  publicPath: '',
   configureWebpack: {
     plugins: [
       new webpack.DefinePlugin({
@@ -22,11 +18,11 @@ module.exports = {
         patterns: [
           {
             from: 'public/index.*.html',
-            flatten: true,
+            to: "[name][ext]",
           },
           {
             from: 'node_modules/vue/dist/vue.js',
-            flatten: true,
+            to: "[name][ext]",
           },
         ],
       }),
@@ -40,7 +36,19 @@ module.exports = {
       alias: {
         flatbush: 'flatbush/flatbush',
       },
+      fallback: {
+        "child_process": false,
+        "fs": false,
+        "path": false,
+      },
     },
   },
-  transpileDependencies: ['mapshaper', 'flatqueue', 'flatbush', 'xmldom', 'xpath', 'spacetime'],
-};
+  transpileDependencies: [
+    'mapshaper',
+    'flatqueue',
+    'flatbush',
+    'xmldom',
+    'xpath',
+    'spacetime',
+  ],
+}
